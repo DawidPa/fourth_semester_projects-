@@ -1,0 +1,174 @@
+﻿@page "/"
+
+
+<style>
+    body
+    {
+        background-color: @((isDarkMode) ? "#313332" : "#ffffff");
+        color: @((isDarkMode) ? "#f1f1f1" : "#000000");
+    }
+
+    .top-row[b-ge5yyqnwtx]
+    {
+         background-color: @((isDarkMode) ? "#313332" : "#ffffff");
+         border-bottom: none;
+    }
+
+     h1, label, textarea 
+     {
+        color: @((isDarkMode) ? "#f1f1f1" : "#000000");
+    }
+
+    textarea 
+    {
+        background-color: @((isDarkMode) ? "#2c2c2c" : "#ffffff");
+        color: @((isDarkMode) ? "#f1f1f1" : "#000000");
+    }
+
+    button 
+    {
+        background-color: @((isDarkMode) ? "#2c2c2c" : "#ffffff");
+        color: @((isDarkMode) ? "#f1f1f1" : "#000000");
+    }
+
+    a
+    {
+        display: none;
+    }
+
+    .sidebar[b-ge5yyqnwtx]
+    {
+        background-image:none;
+        background-color: @((isDarkMode) ? "#2c2c2c" : "#5b5c5b");
+    }
+
+</style>
+<button @onclick="ToggleDarkMode" style="width: 180px; height: 70px; font-size: 20px; float:right;">Tryb Ciemny/Jasny</button>
+<h1 style="margin-bottom: 5%;">@translationTitle</h1>
+
+
+<div style="display: flex; flex-direction: row;">
+    <div style="flex: 0;">
+        <label for="inputText" style="font-size: 30px" >Tekst do przetłumaczenia:</label>
+        <br />
+        <textarea id="inputText" @bind="@inputText" rows="6" style="height: 300px; width:400px; resize: none; font-size: 40px; "></textarea>
+    </div>
+
+    <div style="flex: 0; margin-top: 0px; margin-right: 100px; margin-left: 100px;">
+        <button @onclick="Swap" style="width: 285px; height: 100px; font-size: 35px; margin-top: 50px;">Zamień języki</button>
+        <br><br>
+        <button @onclick="Translate" style="width: 285px; height: 100px; font-size: 45px; margin-top: 60px;">Tłumacz</button>    
+    </div>
+
+    <div style="flex: 0">
+        <label for="outputText" style="font-size: 30px">Tłumaczenie:</label>
+        <br />
+        <textarea id="outputText" rows="6" readonly style="height: 300px; width:400px; resize: none; font-size: 40px; ">@translatedText</textarea>
+    </div>
+    
+  
+</div>
+ <br><br>
+<div>
+
+
+@if (!string.IsNullOrEmpty(websiteUrl))
+{
+                    
+        //tworzenie okna przeglądarki w oparciu o websiteUrl
+        <iframe src="@websiteUrl" style="width: 1285px; height: 500px; background-color:white"></iframe>
+
+
+
+    }
+</div>
+
+
+
+@using MySql.Data.MySqlClient
+@code {
+    private string link = "https://dictionary.cambridge.org/pl/dictionary/english-polish/";
+    private string websiteUrl = string.Empty;
+    private string inputText = string.Empty;
+    private string translatedText = string.Empty;
+    private string translationTitle = "Tłumacz polsko-angielski";
+    private string translate = "polish";
+    private string translation = "english";
+    private bool isDarkMode = true;
+
+
+    //Funckja odpowiedzialna za zmianę strony tłumaczenia
+    private void Swap()
+    {
+        if (translationTitle == "Tłumacz polsko-angielski")
+        {
+            //Odpowiednia zmiana zmiennych w celu poprawnego wczytywania danych z bazy danych oraz linku strony
+            translationTitle = "Tłumacz angielsko-polski";
+            translate = "english";
+            translation = "polish";
+            translatedText = "";
+            inputText = "";
+            link = "https://dictionary.cambridge.org/pl/dictionary/polish-english/";
+            websiteUrl = string.Empty;
+        }
+        else
+        {
+            link = "https://dictionary.cambridge.org/pl/dictionary/english-polish/";
+            translationTitle = "Tłumacz polsko-angielski";
+            translate = "polish";
+            translation = "english";
+            translatedText = "";
+            inputText = "";
+            websiteUrl = string.Empty;
+        }
+
+        string temp = inputText;
+        inputText = translatedText;
+        translatedText = temp;
+    }
+
+    //Funkcja odpowiedzialna za tłumaczenie
+    private void Translate()
+    {
+        //Połączenie z bazą
+        string connectionString = "Server=127.0.0.1;Uid=root;Pwd=;Database=dictionary;";
+
+        using (var connection = new MySqlConnection(connectionString))
+        {
+            connection.Open();
+
+            //Wyszukuje po SELECT słowa z bazy danych i wyświetla je w drugim oknie
+            string query = $"SELECT * FROM engpol WHERE {translate} = @inputText";
+            using (var command = new MySqlCommand(query, connection))
+            {
+                command.Parameters.AddWithValue("@inputText", inputText);
+                //Zapytanie do bazy, ExecuteReader wykonuje zapytanie SQL
+                using (var reader = command.ExecuteReader())
+                {
+
+                    //Sprawdzanie warunków 
+                    if (reader.Read() && !string.IsNullOrEmpty(inputText) )
+                    {
+                        translatedText = reader.GetString(translation);
+                        websiteUrl = link + translatedText;
+
+                    }
+                    else if(string.IsNullOrEmpty(inputText))
+                    {
+                        translatedText = "";
+                    }
+                    else
+                    {
+                        translatedText ="Błąd tłumaczenia: " + inputText;
+                    }
+                }
+            }
+        }
+    }
+
+    //Funkcja odpowiedzialna za zmaine wyglądu strony
+    private void ToggleDarkMode()
+    {
+        isDarkMode = !isDarkMode;
+    }
+}
