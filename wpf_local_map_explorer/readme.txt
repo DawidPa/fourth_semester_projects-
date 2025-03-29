@@ -1,0 +1,1 @@
+WPF application that lets users explore local places using a MySQL database and Google Maps integration. The app allows filtering by region and city, displays results in a list, and opens selected locations in a browser
